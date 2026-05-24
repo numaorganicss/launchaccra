@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Numa Organics — Campaign Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --green: #1F3A2E;
+    --gold: #C9A84C;
+    --cream: #F5F0E8;
+    --light: #FAF7F2;
+    --white: #FFFFFF;
+    --gray: #666;
+    --lgray: #E8E0D0;
+    --text: #222;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--light); color: var(--text); }
+
+  header {
+    background: var(--green);
+    padding: 0 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 54px;
+    border-bottom: 3px solid var(--gold);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo-text { color: #fff; font-weight: 800; font-size: 15px; letter-spacing: 1px; }
+  .logo-sub { color: var(--gold); font-size: 12px; margin-left: 14px; font-weight: 600; }
+  .hbadge { background: var(--gold); color: var(--green); font-size: 11px; font-weight: 800; padding: 3px 12px; border-radius: 20px; }
+
+  .filter-bar {
+    background: var(--white);
+    border-bottom: 1px solid var(--lgray);
+    padding: 10px 28px;
+    display: flex; gap: 8px; align-items: center;
+  }
+  .filter-label { font-size: 11px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: .7px; margin-right: 4px; }
+  .fbtn {
+    padding: 5px 16px; border-radius: 20px; border: 2px solid var(--lgray);
+    background: var(--white); cursor: pointer; font-size: 12px; font-weight: 600; color: var(--gray);
+    transition: all .15s;
+  }
+  .fbtn.active { border-color: var(--green); background: var(--green); color: #fff; }
+  .fbtn:hover:not(.active) { border-color: var(--gold); color: var(--green); }
+
+  main { padding: 22px 28px; max-width: 1360px; margin: 0 auto; }
+
+  /* SCORECARDS */
+  .sc-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; margin-bottom: 22px; }
+  .sc {
+    background: var(--white); border-radius: 12px; padding: 18px 16px;
+    border: 1px solid var(--lgray); border-top: 3px solid var(--gold);
+    transition: transform .14s, box-shadow .14s;
+  }
+  .sc:hover { transform: translateY(-2px); box-shadow: 0 5px 18px rgba(0,0,0,.07); }
+  .sc.green-top { border-top-color: var(--green); }
+  .sc-label { font-size: 10px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; }
+  .sc-val { font-size: 30px; font-weight: 900; color: var(--green); line-height: 1; }
+  .sc-sub { font-size: 11px; color: var(--gray); margin-top: 5px; }
+  .sc-delta { font-size: 11px; font-weight: 700; color: #1a7a3a; margin-top: 5px; }
+  .sc-delta.warn { color: #b07a00; }
+
+  /* PANELS */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  .grid-wide { display: grid; grid-template-columns: 3fr 2fr; gap: 18px; margin-bottom: 18px; }
+  @media(max-width:900px){ .grid2,.grid3,.grid-wide { grid-template-columns:1fr; } }
+
+  .panel { background: var(--white); border-radius: 12px; padding: 20px; border: 1px solid var(--lgray); }
+  .panel-title { font-size: 12px; font-weight: 800; color: var(--green); text-transform: uppercase; letter-spacing: .7px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--cream); }
+
+  /* TABLE */
+  .dt { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .dt th { background: var(--green); color: #fff; font-size: 11px; font-weight: 700; padding: 9px 12px; text-align: left; }
+  .dt th:not(:first-child) { text-align: center; }
+  .dt td { padding: 8px 12px; border-bottom: 1px solid var(--lgray); }
+  .dt td:not(:first-child) { text-align: center; }
+  .dt tr:hover td { background: var(--cream); }
+  .dt .lbl { font-weight: 600; color: var(--text); }
+  .dt .val { font-weight: 700; color: var(--green); }
+  .dt .note { color: var(--gray); font-size: 11px; font-style: italic; }
+
+  /* TOP POSTS */
+  .post { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; background: var(--light); margin-bottom: 8px; }
+  .post:last-child { margin-bottom: 0; }
+  .prank { width: 26px; height: 26px; border-radius: 50%; background: var(--green); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
+  .prank.g { background: var(--gold); }
+  .pplat { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--gray); }
+  .pname { font-size: 13px; font-weight: 600; }
+  .pstat { margin-left: auto; text-align: right; flex-shrink: 0; }
+  .pviews { font-size: 18px; font-weight: 900; color: var(--green); line-height: 1; }
+  .punit { font-size: 10px; color: var(--gray); }
+
+  /* OBJ */
+  .obj { display: flex; align-items: flex-start; gap: 10px; padding: 13px; border-radius: 9px; background: var(--light); margin-bottom: 10px; }
+  .obj:last-child { margin-bottom: 0; }
+  .obadge { flex-shrink: 0; padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; }
+  .obadge.ex { background: #d4edda; color: #155724; }
+  .obadge.ip { background: #fff3cd; color: #856404; }
+  .oname { font-size: 13px; font-weight: 700; color: var(--green); margin-bottom: 3px; }
+  .ores { font-size: 12px; color: var(--gray); line-height: 1.5; }
+
+  .chart-wrap { position: relative; height: 210px; }
+
+  footer { background: var(--green); color: #aaa; text-align: center; padding: 16px; font-size: 12px; margin-top: 32px; }
+  footer strong { color: var(--gold); }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;">
+    <span class="logo-text">NUMA ORGANICS</span>
+    <span class="logo-sub">LaunchAccra · Campaign Dashboard · May 2026</span>
+  </div>
+  <span class="hbadge">11 DAYS · ZERO PAID SPEND</span>
+</header>
+
+<div class="filter-bar">
+  <span class="filter-label">Platform</span>
+  <button class="fbtn active" id="btn-all" onclick="setPlat('all')">All Platforms</button>
+  <button class="fbtn" id="btn-ig" onclick="setPlat('ig')">Instagram</button>
+  <button class="fbtn" id="btn-tt" onclick="setPlat('tt')">TikTok</button>
+</div>
+
+<main>
+
+  <!-- SCORECARDS -->
+  <div class="sc-row" id="sc-row">
+    <!-- filled by JS -->
+  </div>
+
+  <!-- ROW 1: Views bar + IG Format donut -->
+  <div class="grid2">
+    <div class="panel">
+      <div class="panel-title">Views by Platform</div>
+      <div class="chart-wrap"><canvas id="viewsChart"></canvas></div>
+    </div>
+    <div class="panel" id="panel-format">
+      <div class="panel-title" id="format-title">Instagram — Content Format Split (Views)</div>
+      <div class="chart-wrap"><canvas id="formatChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 2: Engagement breakdown + Audience reach -->
+  <div class="grid2">
+    <div class="panel">
+      <div class="panel-title" id="eng-title">Engagement Breakdown</div>
+      <div class="chart-wrap"><canvas id="engChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Audience — Follower vs Non-Follower Views</div>
+      <div class="chart-wrap"><canvas id="audChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 3: Metrics table + Top posts -->
+  <div class="grid-wide">
+    <div class="panel">
+      <div class="panel-title">Platform Metrics — Full Breakdown</div>
+      <table class="dt" id="metrics-table">
+        <thead>
+          <tr><th>Metric</th><th>Instagram</th><th>TikTok</th><th>Note</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="lbl">Followers (Start)</td><td class="val">63</td><td class="val">88</td><td class="note">April 24 baseline</td></tr>
+          <tr><td class="lbl">Followers (End)</td><td class="val">72 <span style="color:#1a7a3a;font-size:11px;">+14%</span></td><td class="val">96 <span style="color:#1a7a3a;font-size:11px;">+9%</span></td><td class="note">Organic only</td></tr>
+          <tr><td class="lbl">New Followers</td><td class="val">+9</td><td class="val">+8</td><td class="note">+17 total combined</td></tr>
+          <tr><td class="lbl">Total Views</td><td class="val">2,472</td><td class="val">4,002</td><td class="note">6,474 combined</td></tr>
+          <tr><td class="lbl">Reach</td><td class="val">781 <span style="color:#1a7a3a;font-size:11px;">+354.1%</span></td><td class="val">68.3% FYP</td><td class="note">12:1 ratio on IG</td></tr>
+          <tr><td class="lbl">Likes</td><td class="val">208</td><td class="val">356</td><td class="note">TikTok led volume</td></tr>
+          <tr><td class="lbl">Comments</td><td class="val">59</td><td class="val">34</td><td class="note">Most IG from non-followers</td></tr>
+          <tr><td class="lbl">Shares</td><td class="val">30</td><td class="val">24</td><td class="note">Organic redistribution</td></tr>
+          <tr><td class="lbl">Reposts / Saves</td><td class="val">37 · 2</td><td class="val">—</td><td class="note">Strong IG community sharing</td></tr>
+          <tr><td class="lbl">Profile Visits</td><td class="val">87 <span style="color:#1a7a3a;font-size:11px;">+163.6%</span></td><td class="val">61</td><td class="note">Strong discovery</td></tr>
+          <tr><td class="lbl">Link Taps</td><td class="val">0</td><td class="val">—</td><td class="note">No external clicks</td></tr>
+          <tr><td class="lbl">Non-follower Views</td><td class="val">58.3%</td><td class="val">68.3%</td><td class="note">Majority beyond followers</td></tr>
+          <tr><td class="lbl">Total Interactions</td><td class="val">480</td><td class="val">390</td><td class="note">IG dominated volume</td></tr>
+          <tr><td class="lbl">Top Post Views</td><td class="val">492</td><td class="val">1,597</td><td class="note">Mother's Day Reel — #1 both platforms</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Top Performing Posts</div>
+      <div class="post">
+        <div class="prank g">1</div>
+        <div><div class="pplat">TikTok</div><div class="pname">Mother's Day Reel</div></div>
+        <div class="pstat"><div class="pviews">1,597</div><div class="punit">views</div></div>
+      </div>
+      <div class="post">
+        <div class="prank">2</div>
+        <div><div class="pplat">Instagram</div><div class="pname">Mother's Day Reel</div></div>
+        <div class="pstat"><div class="pviews">492</div><div class="punit">views · 44 comments</div></div>
+      </div>
+      <div class="post">
+        <div class="prank">3</div>
+        <div><div class="pplat">Instagram</div><div class="pname">Etornam & Ella Testimonial</div></div>
+        <div class="pstat"><div class="pviews">348</div><div class="punit">views · 36 likes</div></div>
+      </div>
+      <div class="post">
+        <div class="prank">4</div>
+        <div><div class="pplat">Instagram</div><div class="pname">Loretta & Theresa Review</div></div>
+        <div class="pstat"><div class="pviews">30</div><div class="punit">likes</div></div>
+      </div>
+      <div class="post">
+        <div class="prank">5</div>
+        <div><div class="pplat">Instagram</div><div class="pname">Numa Police — Refill Skit</div></div>
+        <div class="pstat"><div class="pviews">High</div><div class="punit">refill intent comments</div></div>
+      </div>
+
+      <!-- Campaign objectives below top posts -->
+      <div class="panel-title" style="margin-top:20px;">Campaign Objectives</div>
+      <div class="obj">
+        <span class="obadge ex">EXCEEDED</span>
+        <div>
+          <div class="oname">Brand Awareness — Target: +40% reach</div>
+          <div class="ores">781 accounts reached · +354.1% · 58.3% non-followers · 12:1 reach-to-follower ratio</div>
+        </div>
+      </div>
+      <div class="obj">
+        <span class="obadge ex">EXCEEDED</span>
+        <div>
+          <div class="oname">Engagement — Target: 8% rate</div>
+          <div class="ores">48.8% engagement rate · 480 interactions · Reels drove 72.7%</div>
+        </div>
+      </div>
+      <div class="obj">
+        <span class="obadge ip">IN PROGRESS</span>
+        <div>
+          <div class="oname">Sales Growth — Target: +25% monthly</div>
+          <div class="ores">WhatsApp Business live · 1 qualified DM · Multiple refill enquiries</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <strong>Numa Organics</strong> · LaunchAccra Campaign · May 2026 · Data from Instagram Insights & TikTok Analytics
+</footer>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+const D = {
+  all: {
+    cards: [
+      { label: 'Combined Views',    val: '6,474',   sub: 'Instagram + TikTok',         delta: null,         green: true },
+      { label: 'IG Reach',          val: '781',      sub: 'Unique accounts',            delta: '▲ +354.1%',  green: true },
+      { label: 'IG Engagement Rate',val: '48.8%',    sub: 'vs 8% target',               delta: '▲ 6× target',green: false },
+      { label: 'Total Interactions',val: '870',      sub: 'IG 480 · TikTok 390',        delta: null,         green: false },
+      { label: 'Non-follower Views',val: '58–68%',   sub: 'IG 58.3% · TT 68.3%',       delta: null,         green: false },
+      { label: 'New Followers',     val: '+17',      sub: 'IG +9 · TikTok +8',          delta: null,         green: false },
+      { label: 'Posts Published',   val: '12',       sub: '11 days · zero paid',        delta: null,         green: false },
+      { label: 'Reach:Follower',    val: '12:1',     sub: 'Instagram only',             delta: null,         green: false },
+    ],
+    viewsData: [2472, 4002],
+    viewsLabels: ['Instagram', 'TikTok'],
+    viewsColors: ['#1F3A2E', '#C9A84C'],
+    formatData: [67.9, 25.6, 6.4],
+    formatLabels: ['Reels 67.9%', 'Posts 25.6%', 'Stories 6.4%'],
+    engLabels: ['Likes', 'Comments', 'Shares', 'Reposts/Saves'],
+    engDatasets: [
+      { label: 'Instagram', data: [208, 59, 30, 39], backgroundColor: '#1F3A2E' },
+      { label: 'TikTok',    data: [356, 34, 24, 0],  backgroundColor: '#C9A84C' },
+    ],
+    audData: [58.3, 41.7],
+    audLabels: ['Non-followers (58.3%)', 'Followers (41.7%)'],
+    audTitle: 'Instagram Audience Composition',
+  },
+  ig: {
+    cards: [
+      { label: 'Views',             val: '2,472',   sub: 'Instagram only',             delta: null,         green: true },
+      { label: 'Reach',             val: '781',      sub: 'Unique accounts',            delta: '▲ +354.1%',  green: true },
+      { label: 'Engagement Rate',   val: '48.8%',    sub: 'vs 8% target',               delta: '▲ 6× target',green: false },
+      { label: 'Total Interactions',val: '480',      sub: 'Likes + Comments + Shares',  delta: null,         green: false },
+      { label: 'Non-follower Views',val: '58.3%',    sub: 'Algorithm + shares',         delta: null,         green: false },
+      { label: 'New Followers',     val: '+9',       sub: '63 → 72  (+14%)',            delta: '▲ +14%',     green: false },
+      { label: 'Profile Visits',    val: '87',       sub: 'Prior period',               delta: '▲ +163.6%',  green: false },
+      { label: 'Link Taps',         val: '0',        sub: 'No external clicks',         delta: null,         green: false },
+    ],
+    viewsData: [2472],
+    viewsLabels: ['Instagram'],
+    viewsColors: ['#1F3A2E'],
+    formatData: [67.9, 25.6, 6.4],
+    formatLabels: ['Reels 67.9%', 'Posts 25.6%', 'Stories 6.4%'],
+    engLabels: ['Likes', 'Comments', 'Shares', 'Reposts', 'Saves'],
+    engDatasets: [
+      { label: 'Instagram', data: [208, 59, 30, 37, 2], backgroundColor: '#1F3A2E' },
+    ],
+    audData: [58.3, 41.7],
+    audLabels: ['Non-followers (58.3%)', 'Followers (41.7%)'],
+    audTitle: 'Instagram Audience Composition',
+  },
+  tt: {
+    cards: [
+      { label: 'Views',             val: '4,002',   sub: 'TikTok only',                delta: null,         green: true },
+      { label: 'FYP Traffic',       val: '68.3%',    sub: 'For You Page discovery',     delta: '▲ New audience',green: true },
+      { label: 'Likes',             val: '356',      sub: 'TikTok',                     delta: null,         green: false },
+      { label: 'Comments',          val: '34',       sub: 'TikTok',                     delta: null,         green: false },
+      { label: 'Shares',            val: '24',       sub: 'TikTok',                     delta: null,         green: false },
+      { label: 'New Followers',     val: '+8',       sub: '88 → 96  (+9%)',             delta: '▲ +9%',      green: false },
+      { label: 'Profile Visits',    val: '61',       sub: 'TikTok profile',             delta: null,         green: false },
+      { label: 'Top Post',          val: '1,597',    sub: "Mother's Day Reel",          delta: null,         green: false },
+    ],
+    viewsData: [4002],
+    viewsLabels: ['TikTok'],
+    viewsColors: ['#C9A84C'],
+    formatData: [68.3, 31.7],
+    formatLabels: ['For You Page (68.3%)', 'Following & Other (31.7%)'],
+    engLabels: ['Likes', 'Comments', 'Shares'],
+    engDatasets: [
+      { label: 'TikTok', data: [356, 34, 24], backgroundColor: '#C9A84C' },
+    ],
+    audData: [68.3, 31.7],
+    audLabels: ['Non-followers FYP (68.3%)', 'Followers (31.7%)'],
+    audTitle: 'TikTok Audience — For You Page vs Followers',
+  },
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let plat = 'all';
+let charts = {};
+
+function setPlat(p) {
+  plat = p;
+  ['all','ig','tt'].forEach(id => {
+    document.getElementById('btn-'+id).classList.toggle('active', id === p);
+  });
+  renderScoreCards();
+  updateCharts();
+}
+
+// ── SCORECARDS ────────────────────────────────────────────────────────────
+function renderScoreCards() {
+  const d = D[plat];
+  const row = document.getElementById('sc-row');
+  row.innerHTML = d.cards.map(c => `
+    <div class="sc ${c.green ? 'green-top' : ''}">
+      <div class="sc-label">${c.label}</div>
+      <div class="sc-val">${c.val}</div>
+      ${c.delta ? `<div class="sc-delta">${c.delta}</div>` : ''}
+      <div class="sc-sub">${c.sub}</div>
+    </div>
+  `).join('');
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────────────
+function buildCharts() {
+  const d = D.all;
+
+  // Views bar
+  charts.views = new Chart(document.getElementById('viewsChart'), {
+    type: 'bar',
+    data: {
+      labels: d.viewsLabels,
+      datasets: [{ data: d.viewsData, backgroundColor: d.viewsColors, borderRadius: 8, borderSkipped: false }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + c.raw.toLocaleString() + ' views' } } },
+      scales: {
+        y: { grid: { color: '#eee' }, ticks: { color: '#666', font: { size: 11 } } },
+        x: { grid: { display: false }, ticks: { color: '#333', font: { size: 12, weight: '700' } } }
+      }
+    }
+  });
+
+  // Format / FYP donut
+  charts.format = new Chart(document.getElementById('formatChart'), {
+    type: 'doughnut',
+    data: {
+      labels: d.formatLabels,
+      datasets: [{ data: d.formatData, backgroundColor: ['#1F3A2E','#C9A84C','#9AB0A0'], borderWidth: 0, hoverOffset: 5 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '60%',
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10, boxWidth: 12 } } }
+    }
+  });
+
+  // Engagement grouped bar
+  charts.eng = new Chart(document.getElementById('engChart'), {
+    type: 'bar',
+    data: { labels: d.engLabels, datasets: d.engDatasets.map(ds => ({ ...ds, borderRadius: 6 })) },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { font: { size: 11 }, padding: 10, boxWidth: 10 } } },
+      scales: {
+        y: { grid: { color: '#eee' }, ticks: { color: '#666', font: { size: 10 } } },
+        x: { grid: { display: false }, ticks: { color: '#333', font: { size: 10 } } }
+      }
+    }
+  });
+
+  // Audience donut
+  charts.aud = new Chart(document.getElementById('audChart'), {
+    type: 'doughnut',
+    data: {
+      labels: d.audLabels,
+      datasets: [{ data: d.audData, backgroundColor: ['#1F3A2E','#E0D5C0'], borderWidth: 0, hoverOffset: 5 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '60%',
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10, boxWidth: 12 } } }
+    }
+  });
+}
+
+function updateCharts() {
+  const d = D[plat];
+
+  // Views
+  charts.views.data.labels = d.viewsLabels;
+  charts.views.data.datasets[0].data = d.viewsData;
+  charts.views.data.datasets[0].backgroundColor = d.viewsColors;
+  charts.views.update();
+
+  // Format / FYP
+  document.getElementById('format-title').textContent =
+    plat === 'tt' ? 'TikTok — Traffic Source (FYP vs Other)' : 'Instagram — Content Format Split (Views)';
+  charts.format.data.labels = d.formatLabels;
+  charts.format.data.datasets[0].data = d.formatData;
+  charts.format.data.datasets[0].backgroundColor =
+    plat === 'tt' ? ['#C9A84C','#E0D5C0'] : ['#1F3A2E','#C9A84C','#9AB0A0'];
+  charts.format.update();
+
+  // Engagement
+  document.getElementById('eng-title').textContent =
+    plat === 'tt' ? 'TikTok Engagement Breakdown' :
+    plat === 'ig' ? 'Instagram Engagement Breakdown' : 'Engagement Breakdown — Both Platforms';
+  charts.eng.data.labels = d.engLabels;
+  charts.eng.data.datasets = d.engDatasets.map(ds => ({ ...ds, borderRadius: 6 }));
+  charts.eng.update();
+
+  // Audience
+  charts.aud.data.labels = d.audLabels;
+  charts.aud.data.datasets[0].data = d.audData;
+  charts.aud.update();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderScoreCards();
+  buildCharts();
+});
+</script>
+</body>
+</html>
